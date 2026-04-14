@@ -1,0 +1,51 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: brice
+          POSTGRES_PASSWORD: brice
+          POSTGRES_DB: brice
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U brice -d brice"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run migrate
+        env:
+          DATABASE_URL: postgres://brice:brice@localhost:5432/brice
+      - run: npm run test:e2e
+        env:
+          DATABASE_URL: postgres://brice:brice@localhost:5432/brice
+          STORAGE_MODE: postgres
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh
+          BRICE_SERVER_API_KEYS: ci-key
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
