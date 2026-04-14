@@ -1,0 +1,32 @@
+stages:
+  - test
+  - build
+
+backend_test:
+  stage: test
+  image: node:20
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: brice
+    POSTGRES_USER: brice
+    POSTGRES_PASSWORD: brice
+    DATABASE_URL: postgres://brice:brice@postgres:5432/brice
+    STORAGE_MODE: postgres
+    JWT_SECRET: test-secret
+    JWT_REFRESH_SECRET: test-refresh
+    BRICE_SERVER_API_KEYS: ci-key
+  script:
+    - cd backend
+    - npm install
+    - npm run migrate
+    - npm run test:e2e
+
+dashboard_build:
+  stage: build
+  image: node:20
+  script:
+    - cd dashboard
+    - npm install
+    - npm run build

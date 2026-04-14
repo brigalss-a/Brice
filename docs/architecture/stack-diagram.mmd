@@ -1,0 +1,32 @@
+flowchart TD
+    subgraph User
+      U1[GitHub User]
+      U2[Dashboard User]
+    end
+    subgraph GitHub
+      GH1[GitHub App]
+      GH2[Webhook Events]
+      GH3[Checks API]
+    end
+    subgraph Backend
+      BE1[Express API]
+      BE2[Modular Pipeline]
+      BE3[Decision Passport]
+      BE4[RBAC/JWT]
+      BE5[Postgres]
+      BE6[Redis]
+      BE7[OpenTelemetry]
+    end
+    subgraph Dashboard
+      D1[React/Vite UI]
+    end
+    U1--PR/Comment-->GH1
+    GH1--Webhook-->BE1
+    BE1--PR Analysis-->BE2
+    BE2--Check Run-->GH3
+    BE1--Passport Action-->BE3
+    BE1--DB-->BE5
+    BE1--Cache-->BE6
+    BE1--Trace-->BE7
+    D1--API-->BE1
+    U2--UI-->D1

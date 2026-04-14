@@ -1,0 +1,52 @@
+/* OAuth login buttons */
+.oauth-btn {
+	display: inline-block;
+	margin-right: 1rem;
+	padding: 0.5rem 1.5rem;
+	border-radius: 4px;
+	font-size: 1rem;
+	text-decoration: none;
+	color: #fff;
+	font-weight: bold;
+	transition: background 0.2s;
+}
+.oauth-btn.google {
+	background: #4285f4;
+}
+.oauth-btn.github {
+	background: #333;
+}
+.oauth-btn:hover {
+	opacity: 0.85;
+}
+/* Tab navigation styles */
+.tabs {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+.tabs button {
+	background: #eee;
+	border: none;
+	padding: 0.5rem 1.5rem;
+	font-size: 1rem;
+	cursor: pointer;
+	border-radius: 4px 4px 0 0;
+	border-bottom: 2px solid transparent;
+	transition: background 0.2s, border-bottom 0.2s;
+}
+.tabs button.active {
+	background: #fff;
+	border-bottom: 2px solid #0070f3;
+	font-weight: bold;
+}
+:root { color-scheme: dark; font-family: Arial, sans-serif; }
+body { margin: 0; background: #0b0f14; color: #f2f2f2; }
+.app { padding: 24px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.card { background: #131a22; border: 1px solid #2f3d4d; border-radius: 16px; padding: 16px; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+input, button { padding: 10px 12px; border-radius: 12px; border: 1px solid #314356; background: #0f151c; color: #fff; }
+button { cursor: pointer; }
+.scroll { max-height: 420px; overflow: auto; }
+pre { white-space: pre-wrap; word-break: break-word; }

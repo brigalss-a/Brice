@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: brice
+      POSTGRES_PASSWORD: brice
+      POSTGRES_DB: brice
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.106.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4318:4318"
+      - "4317:4317"
+
+  backend:
+    build: ./backend
+    depends_on:
+      - postgres
+      - otel-collector
+      # - redis  # planned
+    environment:
+      PORT: 3101
+      NODE_ENV: development
+      STORAGE_MODE: postgres
+      DATABASE_URL: postgres://brice:brice@postgres:5432/brice
+      JWT_SECRET: change-me
+      JWT_REFRESH_SECRET: change-me-too
+      BRICE_SERVER_API_KEYS: local-dev-key-1
+      OTEL_SERVICE_NAME: brice-sentinel-backend
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      DASHBOARD_ORIGIN: http://localhost:5173
+    ports:
+      - "3101:3101"
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "sh", "-c", "npm run start"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3101/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    build: ./backend
+    depends_on:
+      - postgres
+      - otel-collector
+      # - redis  # planned
+    environment:
+      PORT: 3101
+      NODE_ENV: development
+      STORAGE_MODE: postgres
+      DATABASE_URL: postgres://brice:brice@postgres:5432/brice
+      JWT_SECRET: change-me
+      JWT_REFRESH_SECRET: change-me-too
+      BRICE_SERVER_API_KEYS: local-dev-key-1
+      OTEL_SERVICE_NAME: brice-sentinel-worker
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "sh", "-c", "npm run worker"]
+  migrate:
+    build: ./backend
+    depends_on:
+      - postgres
+    environment:
+      NODE_ENV: development
+      STORAGE_MODE: postgres
+      DATABASE_URL: postgres://brice:brice@postgres:5432/brice
+      JWT_SECRET: change-me
+      JWT_REFRESH_SECRET: change-me-too
+      BRICE_SERVER_API_KEYS: local-dev-key-1
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "sh", "-c", "npm run migrate"]
+
+  dashboard:
+    build: ./dashboard
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    environment:
+      VITE_API_BASE_URL: http://localhost:3101
+      VITE_API_KEY: local-dev-key-1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

@@ -1,0 +1,11 @@
+name: OpenAPI Spec Check
+on:
+  pull_request:
+jobs:
+  check-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check OpenAPI Spec Exists
+        run: |
+          test -f docs/openapi.yaml || (echo 'OpenAPI spec missing!' && exit 1)

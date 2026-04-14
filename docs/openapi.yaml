@@ -1,0 +1,434 @@
+
+openapi: 3.0.3
+info:
+  title: BRICE Sentinel API
+  version: 0.2.0
+  description: |
+    BRICE Sentinel API for prompt hardening, simulation, feedback, and job management.
+    All protected endpoints require JWT Bearer auth and workspace membership.
+    SSE events are sent for job, claim, and feedback lifecycle.
+  contact:
+    name: Bespoke Champions League Ltd
+    email: contact@bespea.com
+    url: https://github.com/brigalss-a/Brice
+
+tags:
+  - name: Auth
+    description: Authentication and session endpoints
+  - name: Events
+    description: Server-Sent Events (SSE) endpoints
+  - name: Jobs
+    description: Simulation job management endpoints
+  - name: Personas
+    description: Persona library endpoints
+  - name: Claims
+    description: Prompt optimization and claim endpoints
+  - name: Feedback
+    description: Feedback endpoints
+  - name: Dashboard
+    description: Dashboard summary endpoints
+  - name: Workspace
+    description: Workspace membership endpoints
+
+servers:
+  - url: http://localhost:3001/api
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Register a new user and workspace. Returns a session with JWT tokens.
+      operationId: registerUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, fullName, workspaceId]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                fullName:
+                  type: string
+                workspaceId:
+                  type: string
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login
+      description: Login to an existing workspace. Returns a session with JWT tokens.
+      operationId: loginUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, workspaceId]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                workspaceId:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      summary: Refresh session
+      description: Refresh a session using a refresh token. Returns new JWT tokens.
+      operationId: refreshSession
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Session refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/sso/providers:
+    get:
+      summary: List SSO providers (stub)
+      description: List available SSO providers (currently stub only).
+      operationId: listSsoProviders
+      tags: [Auth]
+      responses:
+        '200':
+          description: SSO providers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          type: string
+
+  /events:
+    get:
+      summary: Server-Sent Events (SSE) for live updates
+      description: Streams job, claim, and feedback events for the user's workspace. Requires JWT Bearer token (as query param or header).
+      operationId: getSseEvents
+      tags: [Events]
+      parameters:
+        - in: query
+          name: token
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: workspaceId
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /jobs/{id}:
+    get:
+      summary: Get job status
+      description: Get the status of a simulation job by ID. Requires workspace membership.
+      operationId: getJobStatus
+      tags: [Jobs]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    type: object
+        '403':
+          description: Forbidden (wrong workspace)
+        '404':
+          description: Job not found
+
+  /personas:
+    get:
+      summary: List personas
+      description: List all available personas for simulation and optimization.
+      operationId: listPersonas
+      tags: [Personas]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Persona library
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  personas:
+                    type: array
+                    items:
+                      type: object
+
+  /optimize:
+    post:
+      summary: Optimize prompt
+      description: Optimize a prompt for safety and boundedness. Requires workspace membership.
+      operationId: optimizePrompt
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [input, domain]
+              properties:
+                input:
+                  type: string
+                domain:
+                  type: string
+                analysisDepth:
+                  type: string
+                harden:
+                  type: boolean
+      responses:
+        '200':
+          description: Optimized prompt
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /simulate:
+    post:
+      summary: Enqueue simulation job
+      description: Enqueue a new simulation job for the workspace. Requires workspace membership and RBAC.
+      operationId: enqueueSimulationJob
+      tags: [Jobs]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt_variant, scenario, turns, batchSize]
+              properties:
+                prompt_variant:
+                  type: string
+                scenario:
+                  type: string
+                turns:
+                  type: integer
+                batchSize:
+                  type: integer
+      responses:
+        '202':
+          description: Job enqueued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feedback:
+    post:
+      summary: Submit feedback
+      description: Submit feedback on a claim. Requires workspace membership.
+      operationId: submitFeedback
+      tags: [Feedback]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [claim_id, rating]
+              properties:
+                claim_id:
+                  type: string
+                rating:
+                  type: string
+                issue:
+                  type: string
+      responses:
+        '200':
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /dashboard/summary:
+    get:
+      summary: Get dashboard summary
+      description: Get summary statistics for the dashboard. Requires workspace membership.
+      operationId: getDashboardSummary
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /workspace/memberships:
+    post:
+      summary: Add workspace membership
+      description: Add a new membership to a workspace. Requires owner or admin role.
+      operationId: addWorkspaceMembership
+      tags: [Workspace]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, role]
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: Membership created
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Session:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          type: object
+        workspaceId:
+          type: string
+        role:
+          type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
