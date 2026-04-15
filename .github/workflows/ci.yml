@@ -32,19 +32,16 @@ jobs:
           DATABASE_URL: postgres://brice:brice@localhost:5432/brice
           JWT_SECRET: test-secret
           JWT_REFRESH_SECRET: test-refresh
-      - name: Start backend server
-        run: npm start &
+      - name: Run backend e2e tests
+        run: |
+          set -euo pipefail
+          npm start > /tmp/backend.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true; echo "--- backend.log ---"; cat /tmp/backend.log' EXIT
+          timeout 60 bash -c 'until curl -fsS http://127.0.0.1:3101/health; do sleep 1; done'
+          npm run test:e2e
         env:
           PORT: 3101
-          DATABASE_URL: postgres://brice:brice@localhost:5432/brice
-          STORAGE_MODE: postgres
-          JWT_SECRET: test-secret
-          JWT_REFRESH_SECRET: test-refresh
-          BRICE_SERVER_API_KEYS: local-dev-key-1
-      - name: Wait for backend health
-        run: timeout 30 bash -c 'until curl -fsS http://127.0.0.1:3101/health; do sleep 1; done'
-      - run: npm run test:e2e
-        env:
           DATABASE_URL: postgres://brice:brice@localhost:5432/brice
           STORAGE_MODE: postgres
           JWT_SECRET: test-secret
