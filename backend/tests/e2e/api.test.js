@@ -77,9 +77,17 @@ test('SSE /api/events streams events', async () => {
   console.log('register SSE:', data);
   const token = data.accessToken;
   // Open SSE connection
-  const es = new EventSource(`${base}/api/events?token=${encodeURIComponent(token)}&workspaceId=${encodeURIComponent(workspaceId)}`);
+  const es = new EventSource(`${base}/api/events?token=${encodeURIComponent(token)}&workspaceId=${encodeURIComponent(workspaceId)}&apiKey=${encodeURIComponent(apiKey)}`);
   let gotHello = false;
   let gotAny = false;
+  if (typeof es.addEventListener === 'function') {
+    es.addEventListener('hello', (e) => {
+      console.log('SSE hello event:', e.data);
+      gotHello = true;
+      gotAny = true;
+      es.close();
+    });
+  }
   es.onmessage = (e) => {
     console.log('SSE message:', e.data);
     if (e.data && e.data.includes('workspaceId')) gotHello = true;

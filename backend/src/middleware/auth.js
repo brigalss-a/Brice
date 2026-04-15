@@ -5,7 +5,11 @@ const repo = require('../services/repository');
 const { isAuth0Enabled, validateAuth0Jwt } = require('../auth/auth0');
 
 function apiKeyMiddleware(req, res, next) {
-  const key = req.header('x-api-key');
+  let key = req.header('x-api-key');
+  // SSE clients (EventSource) often cannot set custom headers; allow query key for /api/events.
+  if (!key && req.path === '/events' && req.method === 'GET' && typeof req.query.apiKey === 'string') {
+    key = req.query.apiKey;
+  }
   if (!env.serverApiKeys.includes(key)) {
     return res.status(401).json({ error: 'invalid_api_key' });
   }
