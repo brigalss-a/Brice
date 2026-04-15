@@ -10,41 +10,47 @@ passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
 // Google OAuth
-passport.use(new GoogleStrategy({
-  clientID: env.googleClientId,
-  clientSecret: env.googleClientSecret,
-  callbackURL: env.googleCallbackUrl,
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const user = await repo.upsertUserByOAuth({
-      provider: 'google',
-      providerId: profile.id,
-      email: profile.emails[0].value,
-      fullName: profile.displayName || profile.emails[0].value
-    });
-    return done(null, user);
-  } catch (err) {
-    return done(err);
-  }
-}));
+if (env.googleClientId && env.googleClientSecret) {
+  passport.use(new GoogleStrategy({
+    clientID: env.googleClientId,
+    clientSecret: env.googleClientSecret,
+    callbackURL: env.googleCallbackUrl,
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      const primaryEmail = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      const user = await repo.upsertUserByOAuth({
+        provider: 'google',
+        providerId: profile.id,
+        email: primaryEmail,
+        fullName: profile.displayName || primaryEmail || `google:${profile.id}`
+      });
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  }));
+}
 
 // GitHub OAuth
-passport.use(new GitHubStrategy({
-  clientID: env.githubClientId,
-  clientSecret: env.githubClientSecret,
-  callbackURL: env.githubCallbackUrl,
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const user = await repo.upsertUserByOAuth({
-      provider: 'github',
-      providerId: profile.id,
-      email: profile.emails[0].value,
-      fullName: profile.displayName || profile.username || profile.emails[0].value
-    });
-    return done(null, user);
-  } catch (err) {
-    return done(err);
-  }
-}));
+if (env.githubClientId && env.githubClientSecret) {
+  passport.use(new GitHubStrategy({
+    clientID: env.githubClientId,
+    clientSecret: env.githubClientSecret,
+    callbackURL: env.githubCallbackUrl,
+  }, async (accessToken, refreshToken, profile, done) => {
+    try {
+      const primaryEmail = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      const user = await repo.upsertUserByOAuth({
+        provider: 'github',
+        providerId: profile.id,
+        email: primaryEmail,
+        fullName: profile.displayName || profile.username || primaryEmail || `github:${profile.id}`
+      });
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  }));
+}
 
 module.exports = passport;
